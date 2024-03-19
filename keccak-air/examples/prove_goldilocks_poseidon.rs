@@ -20,7 +20,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
 
-const NUM_HASHES: usize = 680;
+const NUM_HASHES: usize = 1;
 
 fn main() -> Result<(), VerificationError> {
     let env_filter = EnvFilter::builder()
@@ -79,6 +79,8 @@ fn main() -> Result<(), VerificationError> {
     let mut challenger = Challenger::new(perm.clone());
 
     let proof = prove::<MyConfig, _>(&config, &KeccakAir {}, &mut challenger, trace);
+
+    std::fs::write("proof.json", serde_json::to_string(&proof).unwrap()).unwrap();
 
     let mut challenger = Challenger::new(perm);
     verify(&config, &KeccakAir {}, &mut challenger, &proof)

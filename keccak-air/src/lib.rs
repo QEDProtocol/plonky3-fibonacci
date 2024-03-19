@@ -10,8 +10,10 @@ mod constants;
 mod generation;
 mod logic;
 mod round_flags;
+mod fibonacci_air;
 
 pub use air::*;
+pub use fibonacci_air::*;
 pub use columns::*;
 pub use generation::*;
 
