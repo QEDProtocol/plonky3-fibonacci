@@ -5,6 +5,8 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+ark-ff = "0.4.2"
+hex = "0.4.3"
 p3-air = { path = "../air" }
 p3-field = { path = "../field" }
 p3-matrix = { path = "../matrix" }

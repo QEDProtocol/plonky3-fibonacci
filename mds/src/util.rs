@@ -41,6 +41,9 @@ pub fn apply_circulant<AF: AbstractField, const N: usize>(
 /// non-`const` contexts you probably want `[T]::rotate_right()` from
 /// the standard library.
 pub(crate) const fn rotate_right<const N: usize>(input: [u64; N], offset: usize) -> [u64; N] {
+    if offset == 0 {
+        return input;
+    }
     let mut output = [0u64; N];
     let mut i = 0;
     loop {
@@ -60,22 +63,10 @@ pub(crate) fn apply_circulant_8_sml<F: PrimeField64>(input: [F; 8]) -> [F; 8] {
     const N: usize = 8;
     let mut output = [F::zero(); N];
 
-    const MAT_0: [u64; N] = MATRIX_CIRC_MDS_8_SML;
-    output[0] = F::linear_combination_u64(MAT_0, &input);
-    const MAT_1: [u64; N] = rotate_right(MATRIX_CIRC_MDS_8_SML, 1);
-    output[1] = F::linear_combination_u64(MAT_1, &input);
-    const MAT_2: [u64; N] = rotate_right(MATRIX_CIRC_MDS_8_SML, 2);
-    output[2] = F::linear_combination_u64(MAT_2, &input);
-    const MAT_3: [u64; N] = rotate_right(MATRIX_CIRC_MDS_8_SML, 3);
-    output[3] = F::linear_combination_u64(MAT_3, &input);
-    const MAT_4: [u64; N] = rotate_right(MATRIX_CIRC_MDS_8_SML, 4);
-    output[4] = F::linear_combination_u64(MAT_4, &input);
-    const MAT_5: [u64; N] = rotate_right(MATRIX_CIRC_MDS_8_SML, 5);
-    output[5] = F::linear_combination_u64(MAT_5, &input);
-    const MAT_6: [u64; N] = rotate_right(MATRIX_CIRC_MDS_8_SML, 6);
-    output[6] = F::linear_combination_u64(MAT_6, &input);
-    const MAT_7: [u64; N] = rotate_right(MATRIX_CIRC_MDS_8_SML, 7);
-    output[7] = F::linear_combination_u64(MAT_7, &input);
+    for i in 0..N {
+        const MAT_I: [u64; N]  =  rotate_right(MATRIX_CIRC_MDS_8_SML, i);
+        output[i] = F::linear_combination_u64(MAT_I, &input);
+    }
 
     output
 }
