@@ -4,6 +4,7 @@ use core::hash::{Hash, Hasher};
 use core::iter::{Product, Sum};
 use core::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 
+use num_bigint::BigUint;
 use p3_field::{
     exp_1717986917, exp_u64_by_squaring, halve_u32, AbstractField, Field, Packable, PrimeField,
     PrimeField32, PrimeField64,
@@ -171,7 +172,31 @@ impl AbstractField for Mersenne31 {
 impl Field for Mersenne31 {
     #[cfg(all(target_arch = "aarch64", target_feature = "neon"))]
     type Packing = crate::PackedMersenne31Neon;
-    #[cfg(not(all(target_arch = "aarch64", target_feature = "neon")))]
+    #[cfg(all(
+        target_arch = "x86_64",
+        target_feature = "avx2",
+        not(all(feature = "nightly-features", target_feature = "avx512f"))
+    ))]
+    type Packing = crate::PackedMersenne31AVX2;
+    #[cfg(all(
+        feature = "nightly-features",
+        target_arch = "x86_64",
+        target_feature = "avx512f"
+    ))]
+    type Packing = crate::PackedMersenne31AVX512;
+    #[cfg(not(any(
+        all(target_arch = "aarch64", target_feature = "neon"),
+        all(
+            target_arch = "x86_64",
+            target_feature = "avx2",
+            not(all(feature = "nightly-features", target_feature = "avx512f"))
+        ),
+        all(
+            feature = "nightly-features",
+            target_arch = "x86_64",
+            target_feature = "avx512f"
+        ),
+    )))]
     type Packing = Self;
 
     #[inline]
@@ -233,9 +258,18 @@ impl Field for Mersenne31 {
     fn halve(&self) -> Self {
         Mersenne31::new(halve_u32::<P>(self.value))
     }
+
+    #[inline]
+    fn order() -> BigUint {
+        P.into()
+    }
 }
 
-impl PrimeField for Mersenne31 {}
+impl PrimeField for Mersenne31 {
+    fn as_canonical_biguint(&self) -> BigUint {
+        <Self as PrimeField32>::as_canonical_u32(self).into()
+    }
+}
 
 impl PrimeField32 for Mersenne31 {
     const ORDER_U32: u32 = P;
@@ -258,18 +292,6 @@ impl PrimeField64 for Mersenne31 {
     #[inline]
     fn as_canonical_u64(&self) -> u64 {
         u64::from(self.as_canonical_u32())
-    }
-
-    #[inline]
-    fn linear_combination_u64<const N: usize>(u: [u64; N], v: &[Self; N]) -> Self {
-        // In order not to overflow a u64, we must have sum(u) <= 2^32.
-        debug_assert!(u.iter().sum::<u64>() <= (1u64 << 32));
-
-        let mut dot = u[0] * v[0].value as u64;
-        for i in 1..N {
-            dot += u[i] * v[i].value as u64;
-        }
-        Self::from_wrapped_u64(dot)
     }
 }
 
