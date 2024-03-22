@@ -1,38 +1,28 @@
-use std::iter;
-
 use ark_ff::{BigInteger, PrimeField};
 use p3_challenger::DuplexChallenger;
 use p3_commit::ExtensionMmcs;
 use p3_dft::Radix2DitParallel;
 use p3_field::extension::BinomialExtensionField;
-use p3_field::{AbstractField, Field, PrimeField64};
+use p3_field::{AbstractField, Field};
 use p3_fri::{FriConfig, TwoAdicFriPcs};
-use p3_goldilocks::{DiffusionMatrixGoldilocks, Goldilocks, MdsMatrixGoldilocks};
-use p3_keccak_air::{FibonacciAir, FibonacciCols, NUM_FIBONACCI_COLS};
+use p3_goldilocks::{DiffusionMatrixGoldilocks, Goldilocks};
+use p3_keccak_air::FibonacciAir;
 use p3_matrix::dense::RowMajorMatrix;
 use p3_matrix::Matrix;
 use p3_merkle_tree::FieldMerkleTreeMmcs;
-use p3_poseidon::Poseidon;
 use p3_poseidon2::Poseidon2;
-use p3_symmetric::{CryptographicHasher, PaddingFreeSponge, Permutation, PseudoCompressionFunction, TruncatedPermutation};
-use p3_uni_stark::{get_log_quotient_degree, prove, verify, StarkConfig, VerificationError};
+use p3_symmetric::{PaddingFreeSponge, Permutation, TruncatedPermutation};
+use p3_uni_stark::{prove, verify, StarkConfig, VerificationError};
 use p3_util::log2_ceil_usize;
-use rand::thread_rng;
 use tracing_forest::util::LevelFilter;
 use tracing_forest::ForestLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
 use zkhash::fields::goldilocks::FpGoldiLocks;
-use zkhash::poseidon2::poseidon2::Poseidon2 as Poseidon2Ref;
-use zkhash::poseidon2::poseidon2_instance_goldilocks::{
-    POSEIDON2_GOLDILOCKS_12_PARAMS, POSEIDON2_GOLDILOCKS_8_PARAMS, RC12, RC8,
-};
+use zkhash::poseidon2::poseidon2_instance_goldilocks::RC8;
 
 const WIDTH: usize = 8;
-const D: u64 = 7;
-const ROUNDS_F: usize = 8;
-const ROUNDS_P: usize = 22;
 
 fn goldilocks_from_ark_ff(input: FpGoldiLocks) -> Goldilocks {
     let as_bigint = input.into_bigint();
@@ -69,18 +59,6 @@ fn main() -> Result<(), VerificationError> {
         .collect();
 
     let perm = Perm::new(8, 22, round_constants, DiffusionMatrixGoldilocks);
-    let mut state = [
-        Val::from_canonical_u64(0),
-        Val::from_canonical_u64(0),
-        Val::from_canonical_u64(0),
-        Val::from_canonical_u64(0),
-        Val::from_canonical_u64(0),
-        Val::from_canonical_u64(0),
-        Val::from_canonical_u64(0),
-        Val::from_canonical_u64(0),
-    ];
-    perm.permute_mut(&mut state);
-    dbg!(state);
 
     type MyHash = PaddingFreeSponge<Perm, 8, 4, 4>;
     let hash = MyHash::new(perm.clone());
@@ -109,15 +87,22 @@ fn main() -> Result<(), VerificationError> {
     // 3..6
     // 1 1 2
     // 1 2 3
+    // ...
+    let mut values: Vec<Vec<u64>> = Vec::with_capacity(64);
+    values.push(vec![1, 1, 2]);
+    for i in 1..64 {
+        values.push(vec![
+            values[i - 1][1],
+            values[i - 1][2],
+            values[i - 1][1] + values[i - 1][2],
+        ]);
+    }
     let trace = RowMajorMatrix {
-        values: vec![
-            Goldilocks::from_canonical_u64(1u64),
-            Goldilocks::from_canonical_u64(1u64),
-            Goldilocks::from_canonical_u64(2u64),
-            Goldilocks::from_canonical_u64(1u64),
-            Goldilocks::from_canonical_u64(2u64),
-            Goldilocks::from_canonical_u64(3u64),
-        ],
+        values: values
+            .into_iter()
+            .flatten()
+            .map(|x| Val::from_canonical_u64(x))
+            .collect::<Vec<_>>(),
         width: 3,
     };
     let fri_config = FriConfig {
@@ -135,7 +120,7 @@ fn main() -> Result<(), VerificationError> {
 
     let mut challenger = Challenger::new(perm.clone());
 
-    let proof = prove::<MyConfig, _>(&config, &FibonacciAir {}, &mut challenger, trace);
+    let proof = prove::<MyConfig, _>(&config, &FibonacciAir {}, &mut challenger, trace, &vec![]);
 
     std::fs::write(
         "proof_fibonacci.json",
@@ -144,17 +129,6 @@ fn main() -> Result<(), VerificationError> {
     .unwrap();
 
     let mut challenger = Challenger::new(perm);
-    verify(&config, &FibonacciAir {}, &mut challenger, &proof).unwrap();
-    dbg!(get_log_quotient_degree::<Val, FibonacciAir>(
-        &FibonacciAir {}
-    ));
+    verify(&config, &FibonacciAir {}, &mut challenger, &proof, &vec![]).unwrap();
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn function_name_test() {}
 }

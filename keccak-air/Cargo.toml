@@ -50,7 +50,7 @@ name = "prove_goldilocks_keccak"
 name = "prove_goldilocks_poseidon"
 
 [[example]]
-name = "prove_goldilocks_poseidon_fibonacci"
+name = "prove_goldilocks_poseidon2_fibonacci"
 
 [features]
 # TODO: Consider removing, at least when this gets split off into another repository.

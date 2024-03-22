@@ -4,10 +4,10 @@ use p3_air::{Air, AirBuilder, BaseAir};
 use p3_field::AbstractField;
 use p3_matrix::MatrixRowSlices;
 
-use crate::columns::{KeccakCols, NUM_KECCAK_COLS};
-use crate::constants::rc_value_bit;
-use crate::logic::{andn_gen, xor3_gen, xor_gen};
-use crate::{BITS_PER_LIMB, NUM_ROUNDS, U64_LIMBS};
+
+
+
+
 
 pub const NUM_FIBONACCI_COLS: usize = 3;
 

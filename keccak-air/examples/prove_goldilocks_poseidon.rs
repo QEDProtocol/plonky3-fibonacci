@@ -77,10 +77,10 @@ fn main() -> Result<(), VerificationError> {
 
     let mut challenger = Challenger::new(perm.clone());
 
-    let proof = prove::<MyConfig, _>(&config, &KeccakAir {}, &mut challenger, trace);
+    let proof = prove(&config, &KeccakAir {}, &mut challenger, trace, &vec![]);
 
     std::fs::write("proof.json", serde_json::to_string(&proof).unwrap()).unwrap();
 
     let mut challenger = Challenger::new(perm);
-    verify(&config, &KeccakAir {}, &mut challenger, &proof)
+    verify(&config, &KeccakAir {}, &mut challenger, &proof, &vec![])
 }
