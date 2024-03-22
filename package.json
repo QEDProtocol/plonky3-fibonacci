@@ -1,0 +1,15 @@
+{
+  "name": "plonky3",
+  "version": "1.0.0",
+  "description": "![Plonky3-powered-by-polygon](https://github.com/Plonky3/Plonky3/assets/86010/7ec356ad-b0f3-4c4c-aa1d-3a151c1065e7)",
+  "main": "x.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "bignumber.js": "^9.1.2"
+  }
+}

@@ -12,6 +12,7 @@ use p3_matrix::dense::RowMajorMatrix;
 use p3_matrix::Matrix;
 use p3_merkle_tree::FieldMerkleTreeMmcs;
 use p3_poseidon::Poseidon;
+use p3_poseidon2::Poseidon2;
 use p3_symmetric::{PaddingFreeSponge, Permutation, TruncatedPermutation};
 use p3_uni_stark::{prove, verify, StarkConfig, VerificationError};
 use p3_util::log2_ceil_usize;
@@ -21,6 +22,21 @@ use tracing_forest::ForestLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
+
+use zkhash::fields::goldilocks::FpGoldiLocks;
+use zkhash::poseidon2::poseidon2::Poseidon2 as Poseidon2Ref;
+use zkhash::poseidon2::poseidon2_instance_goldilocks::{
+    POSEIDON2_GOLDILOCKS_12_PARAMS, POSEIDON2_GOLDILOCKS_8_PARAMS, RC12, RC8,
+};
+use ark_ff::BigInteger;
+
+    fn goldilocks_from_ark_ff(input: FpGoldiLocks) -> Goldilocks {
+        let as_bigint = input.into_bigint();
+        let mut as_bytes = as_bigint.to_bytes_le();
+        as_bytes.resize(8, 0);
+        let as_u64 = u64::from_le_bytes(as_bytes[0..8].try_into().unwrap());
+        Goldilocks::from_wrapped_u64(as_u64)
+    }
 
 fn main() -> Result<(), VerificationError> {
     let env_filter = EnvFilter::builder()
@@ -35,252 +51,20 @@ fn main() -> Result<(), VerificationError> {
     type Val = Goldilocks;
     type Challenge = BinomialExtensionField<Val, 2>;
 
-    type Perm = Poseidon<Val, MdsMatrixGoldilocks, 8, 7>;
+    type Perm = Poseidon2<Val, MdsMatrixGoldilocks, 8, 7>;
     let perm = Perm::new(
         4,
         22,
-        vec![
-            Val::from_canonical_u64(13080132714287613952),
-            Val::from_canonical_u64(8594738767457295360),
-            Val::from_canonical_u64(12896916465481390080),
-            Val::from_canonical_u64(1109962092811921408),
-            Val::from_canonical_u64(16216730422861946880),
-            Val::from_canonical_u64(10137062673499592704),
-            Val::from_canonical_u64(15292064466732466176),
-            Val::from_canonical_u64(17255573294985990144),
-            Val::from_canonical_u64(9667108687426275328),
-            Val::from_canonical_u64(6470857420712284160),
-            Val::from_canonical_u64(14103331940138338304),
-            Val::from_canonical_u64(11854816473550292992),
-            Val::from_canonical_u64(3498097497301325312),
-            Val::from_canonical_u64(7947235692523864064),
-            Val::from_canonical_u64(11110078701231902720),
-            Val::from_canonical_u64(16384314112672821248),
-            Val::from_canonical_u64(16859897325061799936),
-            Val::from_canonical_u64(17685474420222222336),
-            Val::from_canonical_u64(17858764734618734592),
-            Val::from_canonical_u64(9410011022665867264),
-            Val::from_canonical_u64(12495243629579415552),
-            Val::from_canonical_u64(12416945298171514880),
-            Val::from_canonical_u64(5776666812364270592),
-            Val::from_canonical_u64(6314421662864060416),
-            Val::from_canonical_u64(10567510598607411200),
-            Val::from_canonical_u64(8135543733717918720),
-            Val::from_canonical_u64(116353493081713696),
-            Val::from_canonical_u64(8029688163494945792),
-            Val::from_canonical_u64(9003846637224807424),
-            Val::from_canonical_u64(7052445132467233792),
-            Val::from_canonical_u64(9645665432288851968),
-            Val::from_canonical_u64(5446430061030868992),
-            Val::from_canonical_u64(4378616569090929664),
-            Val::from_canonical_u64(3334807502817538560),
-            Val::from_canonical_u64(8019184735943345152),
-            Val::from_canonical_u64(2395043908812246528),
-            Val::from_canonical_u64(6558421058331732992),
-            Val::from_canonical_u64(11735894060727326720),
-            Val::from_canonical_u64(8143540538889204736),
-            Val::from_canonical_u64(5991753489563751424),
-            Val::from_canonical_u64(8156487614120950784),
-            Val::from_canonical_u64(10615269510047010816),
-            Val::from_canonical_u64(12489426404754221056),
-            Val::from_canonical_u64(5055279340069995520),
-            Val::from_canonical_u64(7231927319780248576),
-            Val::from_canonical_u64(2602078848106763776),
-            Val::from_canonical_u64(12445944369334781952),
-            Val::from_canonical_u64(3978905923892496384),
-            Val::from_canonical_u64(11073536380651186176),
-            Val::from_canonical_u64(4866839313097608192),
-            Val::from_canonical_u64(13118391689513957376),
-            Val::from_canonical_u64(14527674973762312192),
-            Val::from_canonical_u64(7612751959265567744),
-            Val::from_canonical_u64(6808090907814177792),
-            Val::from_canonical_u64(6899703779492644864),
-            Val::from_canonical_u64(3664666286336986624),
-            Val::from_canonical_u64(16970959813722173440),
-            Val::from_canonical_u64(15735726858241466368),
-            Val::from_canonical_u64(10347018221892268032),
-            Val::from_canonical_u64(12195545878449321984),
-            Val::from_canonical_u64(7423314197114049536),
-            Val::from_canonical_u64(14908016116973903872),
-            Val::from_canonical_u64(5840340122527363072),
-            Val::from_canonical_u64(17740311462440613888),
-            Val::from_canonical_u64(8167785008538062848),
-            Val::from_canonical_u64(9483259819397404672),
-            Val::from_canonical_u64(954550221664291584),
-            Val::from_canonical_u64(10339565171024312320),
-            Val::from_canonical_u64(8651171084286499840),
-            Val::from_canonical_u64(16974445528003516416),
-            Val::from_canonical_u64(15104530047940620288),
-            Val::from_canonical_u64(103271880867179712),
-            Val::from_canonical_u64(15919951556166197248),
-            Val::from_canonical_u64(4423540216573361152),
-            Val::from_canonical_u64(16317664700341473280),
-            Val::from_canonical_u64(4723997214951768064),
-            Val::from_canonical_u64(10098756619006574592),
-            Val::from_canonical_u64(3223149401237667840),
-            Val::from_canonical_u64(6870494874300767232),
-            Val::from_canonical_u64(2902095711130291712),
-            Val::from_canonical_u64(15021242795466053632),
-            Val::from_canonical_u64(3802990509227527168),
-            Val::from_canonical_u64(4665459515680145408),
-            Val::from_canonical_u64(13165553315407675392),
-            Val::from_canonical_u64(6496364397926233088),
-            Val::from_canonical_u64(12800832566287577088),
-            Val::from_canonical_u64(9737592377590267904),
-            Val::from_canonical_u64(8687131091302514688),
-            Val::from_canonical_u64(3505040783153923072),
-            Val::from_canonical_u64(3710332827435113472),
-            Val::from_canonical_u64(15414874040873320448),
-            Val::from_canonical_u64(8602547649919481856),
-            Val::from_canonical_u64(13971349938398812160),
-            Val::from_canonical_u64(187239246702636064),
-            Val::from_canonical_u64(12886019973971253248),
-            Val::from_canonical_u64(4512274763990493696),
-            Val::from_canonical_u64(1558644089185031168),
-            Val::from_canonical_u64(4074089203264759296),
-            Val::from_canonical_u64(2522268501749395456),
-            Val::from_canonical_u64(3414760436185256448),
-            Val::from_canonical_u64(17420887529146466304),
-            Val::from_canonical_u64(2817020417938124800),
-            Val::from_canonical_u64(16538346563888261120),
-            Val::from_canonical_u64(5592270336833998848),
-            Val::from_canonical_u64(6502946837278398464),
-            Val::from_canonical_u64(15816362857667989504),
-            Val::from_canonical_u64(12997958454165692416),
-            Val::from_canonical_u64(5314892854495903744),
-            Val::from_canonical_u64(15533907063555688448),
-            Val::from_canonical_u64(12312015675698548736),
-            Val::from_canonical_u64(14140016464013350912),
-            Val::from_canonical_u64(16325589062962839552),
-            Val::from_canonical_u64(8597377839806076928),
-            Val::from_canonical_u64(9704018824195917824),
-            Val::from_canonical_u64(12763288618765762560),
-            Val::from_canonical_u64(17249257732622848000),
-            Val::from_canonical_u64(1998710993415069696),
-            Val::from_canonical_u64(923759906393011584),
-            Val::from_canonical_u64(1271051229666811648),
-            Val::from_canonical_u64(17822362132088737792),
-            Val::from_canonical_u64(17999926471875633152),
-            Val::from_canonical_u64(635992114476018176),
-            Val::from_canonical_u64(17205047318256576512),
-            Val::from_canonical_u64(17384900867876315136),
-            Val::from_canonical_u64(16484825562915784704),
-            Val::from_canonical_u64(16694130609036138496),
-            Val::from_canonical_u64(10575069350371260416),
-            Val::from_canonical_u64(8330575162062886912),
-            Val::from_canonical_u64(885298637936952576),
-            Val::from_canonical_u64(541790758138118912),
-            Val::from_canonical_u64(5985203084790373376),
-            Val::from_canonical_u64(4685030219775483904),
-            Val::from_canonical_u64(1411106851304815104),
-            Val::from_canonical_u64(11290732479954096128),
-            Val::from_canonical_u64(208280581124868512),
-            Val::from_canonical_u64(10979018648467968000),
-            Val::from_canonical_u64(15952065508715624448),
-            Val::from_canonical_u64(15571300830419767296),
-            Val::from_canonical_u64(17259785660502616064),
-            Val::from_canonical_u64(4298425495274316288),
-            Val::from_canonical_u64(9023601070579319808),
-            Val::from_canonical_u64(7353589709321807872),
-            Val::from_canonical_u64(2988848909076209664),
-            Val::from_canonical_u64(10439527789422045184),
-            Val::from_canonical_u64(216040220732135360),
-            Val::from_canonical_u64(14252611488623712256),
-            Val::from_canonical_u64(9543395466794536960),
-            Val::from_canonical_u64(2714461051639811072),
-            Val::from_canonical_u64(2588317208781407232),
-            Val::from_canonical_u64(15458529123534594048),
-            Val::from_canonical_u64(15748417817551040512),
-            Val::from_canonical_u64(16414455697114423296),
-            Val::from_canonical_u64(4397422800601932288),
-            Val::from_canonical_u64(11285062031581972480),
-            Val::from_canonical_u64(7309354640676467712),
-            Val::from_canonical_u64(10457152817239332864),
-            Val::from_canonical_u64(8855911538863247360),
-            Val::from_canonical_u64(4301853449821814272),
-            Val::from_canonical_u64(13001502396339103744),
-            Val::from_canonical_u64(10218424535115579392),
-            Val::from_canonical_u64(16761509772042182656),
-            Val::from_canonical_u64(6688821660695954432),
-            Val::from_canonical_u64(12083434295263160320),
-            Val::from_canonical_u64(8540021431714616320),
-            Val::from_canonical_u64(6891616215679974400),
-            Val::from_canonical_u64(10229217098454812672),
-            Val::from_canonical_u64(3292165387203778560),
-            Val::from_canonical_u64(6090113424998243328),
-            Val::from_canonical_u64(17070233710126620672),
-            Val::from_canonical_u64(6915716851370551296),
-            Val::from_canonical_u64(9505009849073027072),
-            Val::from_canonical_u64(6422700465081896960),
-            Val::from_canonical_u64(17977653991560529920),
-            Val::from_canonical_u64(5800870252836247552),
-            Val::from_canonical_u64(12096124733159346176),
-            Val::from_canonical_u64(7679273623392321536),
-            Val::from_canonical_u64(10376377187857633280),
-            Val::from_canonical_u64(13344930747504285696),
-            Val::from_canonical_u64(11579281865160153088),
-            Val::from_canonical_u64(10300256980048736256),
-            Val::from_canonical_u64(378765236515040576),
-            Val::from_canonical_u64(11412420941557254144),
-            Val::from_canonical_u64(12931662470734252032),
-            Val::from_canonical_u64(43018908376346376),
-            Val::from_canonical_u64(16001900718237913088),
-            Val::from_canonical_u64(5548469743008097280),
-            Val::from_canonical_u64(14584404916672178176),
-            Val::from_canonical_u64(3396622135873576960),
-            Val::from_canonical_u64(7861729246871155712),
-            Val::from_canonical_u64(16112271126908045312),
-            Val::from_canonical_u64(16988163966860015616),
-            Val::from_canonical_u64(273641680619529504),
-            Val::from_canonical_u64(5575990058472514560),
-            Val::from_canonical_u64(2751301609188253184),
-            Val::from_canonical_u64(6478598528223547392),
-            Val::from_canonical_u64(386565553848556608),
-            Val::from_canonical_u64(9417729078939938816),
-            Val::from_canonical_u64(15204315939835727872),
-            Val::from_canonical_u64(14942015033780606976),
-            Val::from_canonical_u64(18369423901636581376),
-            Val::from_canonical_u64(1475161295215894528),
-            Val::from_canonical_u64(7999197814297036800),
-            Val::from_canonical_u64(2984233088665867776),
-            Val::from_canonical_u64(3097746028144832000),
-            Val::from_canonical_u64(8849530863480031232),
-            Val::from_canonical_u64(7464920943249009664),
-            Val::from_canonical_u64(3802996844641460736),
-            Val::from_canonical_u64(6284458522545927168),
-            Val::from_canonical_u64(5142217010456550400),
-            Val::from_canonical_u64(1775580461722730240),
-            Val::from_canonical_u64(161694268822794336),
-            Val::from_canonical_u64(1518963253808031744),
-            Val::from_canonical_u64(16475258091652710400),
-            Val::from_canonical_u64(119575899007375152),
-            Val::from_canonical_u64(1275863735937974016),
-            Val::from_canonical_u64(16539412514520641536),
-            Val::from_canonical_u64(16645869274577729536),
-            Val::from_canonical_u64(8039205965509554176),
-            Val::from_canonical_u64(4788586935019371520),
-            Val::from_canonical_u64(15129007200040077312),
-            Val::from_canonical_u64(2055561615223771392),
-            Val::from_canonical_u64(4149731103701412864),
-            Val::from_canonical_u64(10268130195734145024),
-            Val::from_canonical_u64(13406631635880075264),
-            Val::from_canonical_u64(8927746344866570240),
-            Val::from_canonical_u64(11802068403177695232),
-            Val::from_canonical_u64(157833420806751552),
-            Val::from_canonical_u64(4698875910749767680),
-            Val::from_canonical_u64(1616722774788291584),
-            Val::from_canonical_u64(3990951895163747840),
-            Val::from_canonical_u64(16758609224720795648),
-            Val::from_canonical_u64(3045571693290741248),
-            Val::from_canonical_u64(17564372683613562880),
-            Val::from_canonical_u64(4664015225343143936),
-            Val::from_canonical_u64(6133721340680280064),
-            Val::from_canonical_u64(2667022304383014912),
-            Val::from_canonical_u64(12316557761857339392),
-            Val::from_canonical_u64(10375614850625292288),
-            Val::from_canonical_u64(8141542666379134976),
-            Val::from_canonical_u64(9185476451083834368),
-        ],
+        constants::ROUND_CONSTANTS
+            .into_iter()
+            .map(|x| {
+                x.into_iter()
+                    .map(|y| Val::from_canonical_u64(y as u64))
+                    .collect()
+                    .try_into()
+                    .unwrap()
+            })
+            .collect(),
         MdsMatrixGoldilocks,
     );
     let mut state = [
@@ -313,65 +97,232 @@ fn main() -> Result<(), VerificationError> {
     // 0x8b897dc5
     // 0x02820133
 
-    // type MyHash = PaddingFreeSponge<Perm, 8, 4, 4>;
-    // let hash = MyHash::new(perm.clone());
-    //
-    // type MyCompress = TruncatedPermutation<Perm, 2, 4, 8>;
-    // let compress = MyCompress::new(perm.clone());
-    //
-    // type ValMmcs = FieldMerkleTreeMmcs<
-    //     <Val as Field>::Packing,
-    //     <Val as Field>::Packing,
-    //     MyHash,
-    //     MyCompress,
-    //     4,
-    // >;
-    // let val_mmcs = ValMmcs::new(hash, compress);
-    //
-    // type ChallengeMmcs = ExtensionMmcs<Val, Challenge, ValMmcs>;
-    // let challenge_mmcs = ChallengeMmcs::new(val_mmcs.clone());
-    //
-    // type Dft = Radix2DitParallel;
-    // let dft = Dft {};
-    //
-    // type Challenger = DuplexChallenger<Val, Perm, 8>;
-    //
-    // // 0..3
-    // // 3..6
-    // let trace = RowMajorMatrix {
-    //     values: vec![
-    //         Goldilocks::from_canonical_u64(1u64),
-    //         Goldilocks::from_canonical_u64(1u64),
-    //         Goldilocks::from_canonical_u64(2u64),
-    //         Goldilocks::from_canonical_u64(1u64),
-    //         Goldilocks::from_canonical_u64(2u64),
-    //         Goldilocks::from_canonical_u64(3u64),
-    //     ],
-    //     width: 3,
-    // };
-    // let fri_config = FriConfig {
-    //     log_blowup: 1,
-    //     num_queries: 100,
-    //     proof_of_work_bits: 16,
-    //     mmcs: challenge_mmcs,
-    // };
-    // type Pcs = TwoAdicFriPcs<Val, Dft, ValMmcs, ChallengeMmcs>;
-    // let pcs = Pcs::new(log2_ceil_usize(trace.height()), dft, val_mmcs, fri_config);
-    //
-    // type MyConfig = StarkConfig<Pcs, Challenge, Challenger>;
-    // let config = MyConfig::new(pcs);
-    //
-    // let mut challenger = Challenger::new(perm.clone());
-    //
-    // let proof = prove::<MyConfig, _>(&config, &FibonacciAir {}, &mut challenger, trace);
-    //
-    // std::fs::write(
-    //     "proof_fibonacci.json",
-    //     serde_json::to_string(&proof).unwrap(),
-    // )
-    // .unwrap();
-    //
-    // let mut challenger = Challenger::new(perm);
-    // verify(&config, &FibonacciAir {}, &mut challenger, &proof)
+    type MyHash = PaddingFreeSponge<Perm, 8, 4, 4>;
+    let hash = MyHash::new(perm.clone());
+
+    type MyCompress = TruncatedPermutation<Perm, 2, 4, 8>;
+    let compress = MyCompress::new(perm.clone());
+
+    type ValMmcs = FieldMerkleTreeMmcs<
+        <Val as Field>::Packing,
+        <Val as Field>::Packing,
+        MyHash,
+        MyCompress,
+        4,
+    >;
+    let val_mmcs = ValMmcs::new(hash, compress);
+
+    type ChallengeMmcs = ExtensionMmcs<Val, Challenge, ValMmcs>;
+    let challenge_mmcs = ChallengeMmcs::new(val_mmcs.clone());
+
+    type Dft = Radix2DitParallel;
+    let dft = Dft {};
+
+    type Challenger = DuplexChallenger<Val, Perm, 8>;
+
+    // 0..3
+    // 3..6
+    // 1 1 2
+    // 1 2 3
+    let trace = RowMajorMatrix {
+        values: vec![
+            Goldilocks::from_canonical_u64(1u64),
+            Goldilocks::from_canonical_u64(1u64),
+            Goldilocks::from_canonical_u64(2u64),
+            Goldilocks::from_canonical_u64(1u64),
+            Goldilocks::from_canonical_u64(2u64),
+            Goldilocks::from_canonical_u64(3u64),
+        ],
+        width: 3,
+    };
+    let fri_config = FriConfig {
+        log_blowup: 1,
+        num_queries: 100,
+        proof_of_work_bits: 16,
+        mmcs: challenge_mmcs,
+    };
+    type Pcs = TwoAdicFriPcs<Val, Dft, ValMmcs, ChallengeMmcs>;
+    let pcs = Pcs::new(log2_ceil_usize(trace.height()), dft, val_mmcs, fri_config);
+
+    type MyConfig = StarkConfig<Pcs, Challenge, Challenger>;
+    let config = MyConfig::new(pcs);
+
+    let mut challenger = Challenger::new(perm.clone());
+
+    let proof = prove::<MyConfig, _>(&config, &FibonacciAir {}, &mut challenger, trace);
+
+    std::fs::write(
+        "proof_fibonacci.json",
+        serde_json::to_string(&proof).unwrap(),
+    )
+    .unwrap();
+
+    let mut challenger = Challenger::new(perm);
+    verify(&config, &FibonacciAir {}, &mut challenger, &proof).unwrap();
     Ok(())
+}
+
+pub mod constants {
+    pub const WIDTH: usize = 16;
+    pub const DEGREE: usize = 5;
+    pub const ROUNDS_F: usize = 8;
+    pub const ROUNDS_P: usize = 22;
+    pub const ROUNDS: usize = ROUNDS_F + ROUNDS_P;
+
+    pub const MAT_INTERNAL_DIAG_M_1: [u32; WIDTH] = [
+        0x0a632d94, 0x6db657b7, 0x56fbdc9e, 0x052b3d8a, 0x33745201, 0x5c03108c, 0x0beba37b,
+        0x258c2e8b, 0x12029f39, 0x694909ce, 0x6d231724, 0x21c3b222, 0x3c0904a5, 0x01d6acda,
+        0x27705c83, 0x5231c802,
+    ];
+
+    pub const ROUND_CONSTANTS: [[u32; WIDTH]; ROUNDS] = [
+        [
+            96748292, 1951698684, 177396853, 719730562, 640767983, 1390633215, 1716033721,
+            1606702601, 1746607367, 1466015491, 1498308946, 831109173, 1029197920, 1969905919,
+            83412884, 1911782445,
+        ],
+        [
+            1693593583, 759122502, 1154399525, 1131812921, 1080754908, 53582651, 893583089,
+            6411452, 1115338635, 580640471, 1264354339, 842931656, 548879852, 1595288793,
+            1562381995, 81826002,
+        ],
+        [
+            262554421, 1563933798, 1440025885, 184445025, 585385439, 1396647410, 1575877922,
+            1290587480, 137125468, 765010148, 633675867, 24537442, 560123907, 1895729703,
+            541515871, 1783382863,
+        ],
+        [
+            628590563, 1022477421, 1659530405, 245668751, 12194511, 201609705, 286217151, 66943721,
+            506306261, 1067433949, 748735911, 1244250808, 606038199, 1169474910, 73007766,
+            558938232,
+        ],
+        [
+            1196780786, 1434128522, 747167305, 954807686, 1053214930, 1074411832, 2003528587,
+            1570312929, 113576933, 16049344, 1621249812, 1032701597, 351573387, 1827020997,
+            888378655, 506925662,
+        ],
+        [
+            36046858, 914260032, 1898863184, 1991566610, 193772436, 1590247392, 99286330,
+            502985775, 24413908, 269498914, 1973292656, 891403491, 1845429189, 598730442,
+            297276732, 44663898,
+        ],
+        [
+            1492041470, 786445290, 1802048050, 1111591756, 206747992, 762187113, 1991257625,
+            927239888, 738050285, 1028870679, 1282466273, 1059053371, 834521354, 138721483,
+            1087144882, 1829862410,
+        ],
+        [
+            1864954859, 31630597, 1478942487, 799012923, 496734827, 1507995315, 755421082,
+            1361409515, 392099473, 1165187472, 41931879, 7935614, 114353803, 137482145, 1685210312,
+            1839717303,
+        ],
+        [
+            883677154, 1074325006, 992175959, 970216228, 1460364169, 1886404479, 1590122901,
+            620222276, 466141043, 407687078, 1852516800, 226543855, 979699862, 1163403191,
+            1608599874, 1042838527,
+        ],
+        [
+            1765843422, 536205958, 156926519, 1649720295, 1444912244, 1108964957, 384301396,
+            201666674, 1662916865, 55629272, 108631393, 1706239958, 140427546, 1626054781,
+            992593057, 1431907253,
+        ],
+        [
+            1418914503, 1365856753, 1929449824, 1429155552, 1532376874, 1759208336, 1621094396,
+            141133224, 826697382, 1700781391, 1525898403, 652815039, 442484755, 42033470,
+            1064289978, 1152335780,
+        ],
+        [
+            1404382774, 186040114, 1462314652, 100675329, 1779573826, 1573808590, 1222428883,
+            908929360, 1119462702, 1675039600, 1849567013, 667446787, 753897224, 1896396780,
+            1129760413, 1816337955,
+        ],
+        [
+            859661334, 1885578436, 180258337, 308601096, 1585736583, 873516500, 1025033457,
+            1035366250, 25646276, 906908602, 1277696101, 772434369, 1793238414, 1505593012,
+            654843672, 113854354,
+        ],
+        [
+            1548195514, 364790106, 390914568, 1472049779, 1552596765, 1905886441, 1611959354,
+            1639997383, 1410680465, 340857935, 195613559, 139364268, 1434015852, 1764547786,
+            55640413, 75369899,
+        ],
+        [
+            104929687, 1459980974, 1831234737, 457139004, 568221707, 98778642, 1553747940,
+            778738426, 576325418, 41126132, 700296403, 151213722, 877920014, 546846420, 926528998,
+            530203984,
+        ],
+        [
+            178643863, 1301872539, 530414574, 1242280418, 1211740715, 1980406244, 491817402,
+            1832532880, 538768466, 50301639, 1352882353, 1449831887, 394746545, 294726285,
+            1930169572, 924016661,
+        ],
+        [
+            1619872446, 1209523451, 809116305, 30100013, 641906955, 550981196, 465383811, 87157309,
+            93614240, 499042594, 650406041, 213480551, 670242787, 951073977, 1446816067, 339124269,
+        ],
+        [
+            130182653, 742680828, 542600513, 802837101, 1931786340, 31204919, 1709908013,
+            925103122, 1627133772, 1374470239, 177883755, 624229761, 209862198, 276092925,
+            1820102609, 974546524,
+        ],
+        [
+            1293393192, 221548340, 1188782305, 223782844, 235714646, 296520220, 10135706,
+            1265611492, 8872228, 575851471, 1612560780, 1913391015, 1305283056, 578597757,
+            188109355, 191192067,
+        ],
+        [
+            1564209905, 140931974, 446421108, 857368568, 1375012945, 1529454825, 306140690,
+            842312378, 1246997295, 1011032842, 1915270363, 1218245412, 466048099, 976561834,
+            814378556, 13244079,
+        ],
+        [
+            1165280628, 1203983801, 1801474112, 1919627044, 600240215, 773269071, 486685186,
+            227516968, 1415023565, 502840102, 199116516, 510217063, 166444818, 1430745893,
+            1376516190, 1775891321,
+        ],
+        [
+            1170945922, 1105391877, 261536467, 1401687994, 1022529847, 463180535, 590578957,
+            1693070122, 1449787793, 1509644517, 588552318, 65252581, 1683236735, 170064842,
+            1650755312, 1643809916,
+        ],
+        [
+            909609977, 1727424722, 1919195219, 161156271, 606677562, 50507667, 907935782, 72353797,
+            51998725, 602427891, 1103289512, 246100007, 254855312, 19609159, 1217479, 111611860,
+        ],
+        [
+            53688899, 488834048, 901787194, 349252665, 366091708, 69939011, 111853790, 1181891646,
+            1318086382, 521723799, 702443405, 494405064, 1760347557, 618733972, 1672737554,
+            1060867760,
+        ],
+        [
+            346535860, 786965546, 997091114, 1035997899, 1210110952, 1018506770, 786202256,
+            1479380761, 1536021911, 358993854, 579904113, 1418878879, 1612249888, 199241497,
+            31772267, 576898313,
+        ],
+        [
+            1688530738, 1580733335, 430715596, 193004644, 766808308, 615473756, 926857738,
+            118674985, 1559012088, 766341588, 1098718697, 1424913749, 211149954, 1108922178,
+            1633006641, 1921920263,
+        ],
+        [
+            820046587, 1393386250, 652552654, 218516098, 672377010, 1920315467, 1913164407,
+            16260955, 616005899, 384320012, 85788743, 1118558852, 334552276, 207731465, 1772368609,
+            566694174,
+        ],
+        [
+            1531664952, 225847443, 1056816357, 95643305, 1425306121, 1299590588, 615850007,
+            1863868773, 803582265, 1448710938, 889759878, 1482092434, 1889706578, 1859075947,
+            1530411808, 201657663,
+        ],
+        [
+            1105526560, 227810594, 1970403910, 1167649226, 1825360580, 1921630011, 1402085850,
+            236687938, 1741815709, 486327260, 1227575720, 1630603458, 968760152, 452777810,
+            1982634375, 1756343093,
+        ],
+        [
+            182189574, 583597362, 218463131, 1983609348, 2006408474, 1456716110, 1458697570,
+            1593516217, 1963896497, 1102043197, 1659132465, 523504835, 1046028250, 604765413,
+            27637326, 1786529155,
+        ],
+    ];
 }
