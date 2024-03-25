@@ -1,6 +1,6 @@
 //! A framework for finite fields.
 
-#![no_std]
+
 
 extern crate alloc;
 

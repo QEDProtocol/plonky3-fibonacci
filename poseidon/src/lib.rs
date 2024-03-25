@@ -1,6 +1,6 @@
 //! The Poseidon permutation.
 
-#![no_std]
+
 
 extern crate alloc;
 

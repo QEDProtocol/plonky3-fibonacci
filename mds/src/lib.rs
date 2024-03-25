@@ -1,6 +1,6 @@
 //! A library dealing with maximum distance separable transformations.
 
-#![no_std]
+
 
 extern crate alloc;
 

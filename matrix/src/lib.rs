@@ -1,6 +1,6 @@
 //! Matrix library.
 
-#![no_std]
+
 
 extern crate alloc;
 

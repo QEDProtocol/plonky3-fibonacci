@@ -87,14 +87,19 @@ where
         .iter()
         .enumerate()
         .map(|(i, domain)| {
-            quotient_chunks_domains
+            let res = quotient_chunks_domains
                 .iter()
                 .enumerate()
                 .filter(|(j, _)| *j != i)
                 .map(|(_, other_domain)| {
-                    other_domain.zp_at_point(zeta)
-                        * other_domain.zp_at_point(domain.first_point()).inverse()
-                })
+                    let other_domain_zeta =  other_domain.zp_at_point(zeta);
+                        let first_point = domain.first_point();
+                    let other_domain_first_point =
+                        other_domain.zp_at_point(first_point);
+                    let other_domain_first_point_inv = other_domain_first_point.inverse();
+other_domain_zeta * other_domain_first_point_inv
+                }).collect::<Vec<_>>();
+            res.into_iter()
                 .product::<SC::Challenge>()
         })
         .collect_vec();
@@ -124,6 +129,7 @@ where
         alpha,
         accumulator: SC::Challenge::zero(),
     };
+    dbg!(folder.alpha);
     air.eval(&mut folder);
     let folded_constraints = folder.accumulator;
 

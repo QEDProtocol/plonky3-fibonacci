@@ -1,6 +1,6 @@
 //! The blake3 hash function.
 
-#![no_std]
+
 
 extern crate alloc;
 

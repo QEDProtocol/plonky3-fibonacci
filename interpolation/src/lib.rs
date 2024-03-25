@@ -1,6 +1,6 @@
 //! Tools for Lagrange interpolation.
 
-#![no_std]
+
 
 extern crate alloc;
 

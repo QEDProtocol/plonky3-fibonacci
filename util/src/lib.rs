@@ -1,6 +1,6 @@
 //! Various simple utilities.
 
-#![no_std]
+
 
 extern crate alloc;
 

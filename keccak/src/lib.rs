@@ -1,6 +1,6 @@
 //! The Keccak-f permutation, and hash functions built from it.
 
-#![no_std]
+
 
 extern crate alloc;
 

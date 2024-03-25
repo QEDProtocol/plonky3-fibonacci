@@ -1,6 +1,6 @@
 //! A framework for codes (in the coding theory sense).
 
-#![no_std]
+
 
 extern crate alloc;
 

@@ -1,6 +1,6 @@
 //! And AIR for the Keccak-f permutation. Assumes the field size is between 2^16 and 2^32.
 
-#![no_std]
+
 
 extern crate alloc;
 

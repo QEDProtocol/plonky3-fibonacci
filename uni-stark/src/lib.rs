@@ -1,6 +1,6 @@
 //! A minimal univariate STARK framework.
 
-#![no_std]
+
 
 extern crate alloc;
 
