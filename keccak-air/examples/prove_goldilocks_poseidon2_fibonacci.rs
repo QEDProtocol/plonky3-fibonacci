@@ -6,13 +6,13 @@ use p3_field::extension::BinomialExtensionField;
 use p3_field::{AbstractField, Field};
 use p3_fri::{FriConfig, TwoAdicFriPcs};
 use p3_goldilocks::{DiffusionMatrixGoldilocks, Goldilocks};
-use p3_keccak_air::FibonacciAir;
+use p3_keccak_air::{FibonacciAir, NUM_FIBONACCI_COLS};
 use p3_matrix::dense::RowMajorMatrix;
 use p3_matrix::Matrix;
 use p3_merkle_tree::FieldMerkleTreeMmcs;
 use p3_poseidon2::Poseidon2;
 use p3_symmetric::{PaddingFreeSponge, Permutation, TruncatedPermutation};
-use p3_uni_stark::{prove, verify, StarkConfig, VerificationError};
+use p3_uni_stark::{get_log_quotient_degree, prove, verify, StarkConfig, VerificationError};
 use p3_util::log2_ceil_usize;
 use tracing_forest::util::LevelFilter;
 use tracing_forest::ForestLayer;
@@ -59,9 +59,6 @@ fn main() -> Result<(), VerificationError> {
         .collect();
 
     dbg!(&round_constants);
-
-
-
 
     let perm = Perm::new(8, 22, round_constants, DiffusionMatrixGoldilocks);
 
@@ -110,9 +107,10 @@ fn main() -> Result<(), VerificationError> {
     // 1 1 2
     // 1 2 3
     // ...
-    let mut values: Vec<Vec<u64>> = Vec::with_capacity(64);
+    const NUM_FIBONACCI_ROWS: usize = 64;
+    let mut values: Vec<Vec<u64>> = Vec::with_capacity(NUM_FIBONACCI_ROWS);
     values.push(vec![1, 1, 2]);
-    for i in 1..64 {
+    for i in 1..NUM_FIBONACCI_ROWS {
         values.push(vec![
             values[i - 1][1],
             values[i - 1][2],
@@ -125,7 +123,7 @@ fn main() -> Result<(), VerificationError> {
             .flatten()
             .map(|x| Val::from_canonical_u64(x))
             .collect::<Vec<_>>(),
-        width: 3,
+        width: NUM_FIBONACCI_COLS,
     };
     let fri_config = FriConfig {
         log_blowup: 1,
@@ -134,7 +132,13 @@ fn main() -> Result<(), VerificationError> {
         mmcs: challenge_mmcs,
     };
     type Pcs = TwoAdicFriPcs<Val, Dft, ValMmcs, ChallengeMmcs>;
+
     dbg!(log2_ceil_usize(trace.height()));
+    dbg!(get_log_quotient_degree::<Val, FibonacciAir>(
+        &FibonacciAir {},
+        0
+    ));
+
     let pcs = Pcs::new(log2_ceil_usize(trace.height()), dft, val_mmcs, fri_config);
 
     type MyConfig = StarkConfig<Pcs, Challenge, Challenger>;
