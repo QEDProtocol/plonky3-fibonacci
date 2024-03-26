@@ -20,9 +20,9 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Registry};
 use zkhash::fields::goldilocks::FpGoldiLocks;
-use zkhash::poseidon2::poseidon2_instance_goldilocks::RC8;
+use zkhash::poseidon::poseidon_instance_goldilocks::RC12;
 
-const WIDTH: usize = 8;
+const WIDTH: usize = 12;
 
 fn goldilocks_from_ark_ff(input: FpGoldiLocks) -> Goldilocks {
     let as_bigint = input.into_bigint();
@@ -45,8 +45,8 @@ fn main() -> Result<(), VerificationError> {
     type Val = Goldilocks;
     type Challenge = BinomialExtensionField<Val, 2>;
 
-    type Perm = Poseidon2<Val, DiffusionMatrixGoldilocks, 8, 7>;
-    let round_constants: Vec<[Val; WIDTH]> = RC8
+    type Perm = Poseidon2<Val, DiffusionMatrixGoldilocks, 12, 7>;
+    let round_constants: Vec<[Val; WIDTH]> = RC12
         .iter()
         .map(|vec| {
             vec.iter()
@@ -58,12 +58,34 @@ fn main() -> Result<(), VerificationError> {
         })
         .collect();
 
+    dbg!(&round_constants);
+
+
+
+
     let perm = Perm::new(8, 22, round_constants, DiffusionMatrixGoldilocks);
 
-    type MyHash = PaddingFreeSponge<Perm, 8, 4, 4>;
+    let mut state = [
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+        Val::from_canonical_u64(0),
+    ];
+    perm.permute_mut(&mut state);
+    dbg!(state);
+
+    type MyHash = PaddingFreeSponge<Perm, 12, 4, 4>;
     let hash = MyHash::new(perm.clone());
 
-    type MyCompress = TruncatedPermutation<Perm, 2, 4, 8>;
+    type MyCompress = TruncatedPermutation<Perm, 2, 4, 12>;
     let compress = MyCompress::new(perm.clone());
 
     type ValMmcs = FieldMerkleTreeMmcs<
@@ -81,7 +103,7 @@ fn main() -> Result<(), VerificationError> {
     type Dft = Radix2DitParallel;
     let dft = Dft {};
 
-    type Challenger = DuplexChallenger<Val, Perm, 8>;
+    type Challenger = DuplexChallenger<Val, Perm, 12>;
 
     // 0..3
     // 3..6
